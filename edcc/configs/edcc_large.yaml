@@ -1,0 +1,61 @@
+# EDCC Large — Scale-up for maximum performance
+#
+# Key changes:
+#   1. Model scale-up: d_model 128→256, core_dim 64→128, 6 layers (~2.5M params)
+#   2. Larger window: 400→800 samples (4 seconds) — more temporal context
+#   3. More windows: 128 train, 256 eval
+#   4. TTA: 8 repeats at test time
+#   5. LR 7e-5 (sweet spot from experiments: 3e-5 too slow, 1e-4 too fast)
+#   6. Class weights + sample CE dominant (best from Run 2)
+#   7. Warmup 8 epochs, patience 25
+
+model:
+  d_model: 256
+  core_dim: 128
+  num_channels: 19
+  num_classes: 3
+  window_size: 800           # 4 seconds at 200Hz (more temporal context)
+  num_event_types: 6
+  mamba_layers: 6            # ↑ from 4
+  mamba_d_state: 16
+  gcn_layers: 2
+  gcn_hidden: 256            # ↑ from 128
+  dropout: 0.15
+  age_adversarial: true
+  lambda_rev: 0.1
+
+data:
+  dataset_path: local/dataset/caueeg-dataset
+  task: dementia
+  file_format: edf
+  window_size: 800           # 4 seconds
+  window_stride: 200         # 1 second stride (more overlap with larger window)
+  max_windows_train: 128     # ↑ from 96
+  max_windows_eval: 256      # ↑ from 192
+  transition_margin: 600
+  normalize: true
+
+training:
+  lr: 0.00007               # 7e-5 (sweet spot)
+  weight_decay: 0.05
+  total_epochs: 100
+  warmup_epochs: 8
+  batch_size: 8              # ↓ from 12 (larger model + larger windows)
+  early_stopping_patience: 25
+  mixed_precision: true
+
+  loss_alpha: 0.6            # sample CE dominant (better MCI sens from Run 2)
+  loss_beta: 0.4             # subject CE secondary
+  loss_gamma: 0.1
+  label_smoothing: 0.05
+  class_weights: [0.862, 0.949, 1.272]
+
+  aug_noise_std: 0.03
+  aug_window_drop: 0.05
+  aug_channel_drop: 0.05
+  mixup_alpha: 0.2
+
+  tta_repeats: 8
+  eval_repeats: 20
+  checkpoint_dir: local/edcc_checkpoints_large
+  seed: 42

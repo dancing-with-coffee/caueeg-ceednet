@@ -1,0 +1,70 @@
+# EDCC Tuned Configuration — addressing key bottlenecks
+#
+# Changes from base:
+#   1. Lower LR (1e-4 → 3e-5) + longer warmup (5 → 10 epochs) — fix early peak/drop
+#   2. Class weights (inverse frequency) — fix MCI underdetection
+#   3. More windows (64 → 96 train, 192 eval) — capture more recording dynamics
+#   4. Higher dropout (0.1 → 0.2) — reduce overfitting
+#   5. Lower mixup (0.2 → 0.15) — less aggressive mixing
+#   6. Subject-level loss weight increased (0.5 → 0.7) — better generalization
+
+# Model
+model:
+  d_model: 128
+  core_dim: 64
+  num_channels: 19
+  num_classes: 3
+  window_size: 400
+  num_event_types: 6
+  mamba_layers: 4
+  mamba_d_state: 16
+  gcn_layers: 2
+  gcn_hidden: 128
+  dropout: 0.2             # ↑ from 0.1
+  age_adversarial: true
+  lambda_rev: 0.1
+
+# Data
+data:
+  dataset_path: local/dataset/caueeg-dataset
+  task: dementia
+  file_format: edf
+  window_size: 400
+  window_stride: 200
+  max_windows_train: 96    # ↑ from 64
+  max_windows_eval: 192    # ↑ from 128
+  transition_margin: 600
+  normalize: true
+
+# Training
+training:
+  lr: 0.00003              # ↓ from 0.0001
+  weight_decay: 0.05
+  total_epochs: 100
+  warmup_epochs: 10        # ↑ from 5
+  batch_size: 12           # ↓ from 16 (more windows per sample → less batch)
+  early_stopping_patience: 20  # ↑ from 15
+  mixed_precision: true
+
+  # Loss
+  loss_alpha: 0.3          # ↓ sample CE weight
+  loss_beta: 0.7           # ↑ subject CE weight (better generalization)
+  loss_gamma: 0.1
+  label_smoothing: 0.1
+  # Inverse frequency weights: Normal=459, MCI=417, Dementia=311
+  # weights = total / (num_classes * class_count)
+  # Normal: 1187/(3*459)=0.862, MCI: 1187/(3*417)=0.949, Dementia: 1187/(3*311)=1.272
+  class_weights: [0.862, 0.949, 1.272]
+
+  # Augmentation
+  aug_noise_std: 0.03      # ↓ from 0.05
+  aug_window_drop: 0.05    # ↓ from 0.1
+  aug_channel_drop: 0.05   # ↓ from 0.1
+  mixup_alpha: 0.15        # ↓ from 0.2
+
+  # Evaluation
+  eval_repeats: 20
+
+  # Checkpointing
+  checkpoint_dir: local/edcc_checkpoints_tuned
+  seed: 42

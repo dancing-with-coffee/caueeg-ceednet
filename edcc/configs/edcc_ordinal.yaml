@@ -1,0 +1,65 @@
+# EDCC Ordinal — CORAL loss + Window auxiliary + Best settings from Run 5
+#
+# Key idea: Normal → MCI → Dementia is ordinal, not nominal
+# CORAL decomposes into P(Y>0) and P(Y>1) binary classifiers
+# This enforces rank consistency and penalizes distant misclassifications more
+
+model:
+  d_model: 384
+  core_dim: 192
+  num_channels: 19
+  num_classes: 3
+  window_size: 800
+  num_event_types: 6
+  mamba_layers: 6
+  mamba_d_state: 16
+  gcn_layers: 2
+  gcn_hidden: 384
+  dropout: 0.15
+  age_adversarial: true
+  lambda_rev: 0.1
+  use_coral: true              # CORAL ordinal regression
+
+data:
+  dataset_path: local/dataset/caueeg-dataset
+  task: dementia
+  file_format: edf
+  window_size: 800
+  window_stride: 200
+  max_windows_train: 128
+  max_windows_eval: 256
+  transition_margin: 600
+  normalize: true
+
+training:
+  lr: 0.00007                  # Best from Run 5
+  weight_decay: 0.05
+  total_epochs: 100
+  warmup_epochs: 8
+  batch_size: 8
+  early_stopping_patience: 25
+  mixed_precision: true
+
+  # CORAL ordinal loss
+  use_coral: true
+  focal_gamma: 0.0             # CORAL replaces Focal
+  loss_alpha: 0.6
+  loss_beta: 0.4
+  loss_gamma: 0.1
+  label_smoothing: 0.05
+  class_weights: [0.862, 0.949, 1.272]
+
+  # Window auxiliary (128x effective data)
+  window_aux_weight: 0.3
+
+  # Augmentation (moderate)
+  aug_noise_std: 0.03
+  aug_window_drop: 0.05
+  aug_channel_drop: 0.05
+  mixup_alpha: 0.15            # Slightly lower with CORAL
+
+  # TTA
+  tta_repeats: 8
+
+  checkpoint_dir: local/edcc_checkpoints_ordinal
+  seed: 42

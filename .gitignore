@@ -15,3 +15,7 @@
 /wandb/
 
 *.pyc
+
+# EDCC
+caueeg-dataset.zip
+notebooks/*_executed.ipynb

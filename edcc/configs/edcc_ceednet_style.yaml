@@ -1,0 +1,79 @@
+# EDCC CeedNet-Style — All 7 CeedNet techniques adopted
+#
+# Applied CeedNet techniques:
+#   1. Auto stride → N/A (different architecture)
+#   2. Mish activation → applied to tokenizer + classifier
+#   3. Age concat to FC → applied (+ conditional LayerNorm)
+#   4. TTA → diverse window offset (8 repeats)
+#   5. Dataset-level normalization → applied
+#   6. Noise σ=0.001 → fixed (was 30x too high!)
+#   7. Large initial kernel → multi-scale conv (k=15,40,100)
+#
+# Loss: A-RACE (best of both CE and ordinal)
+# Base: Run 5 settings (best overall: 61.02%)
+
+model:
+  d_model: 384
+  core_dim: 192
+  num_channels: 19
+  num_classes: 3
+  window_size: 800
+  num_event_types: 6
+  mamba_layers: 6
+  mamba_d_state: 16
+  gcn_layers: 2
+  gcn_hidden: 384
+  dropout: 0.15
+  age_adversarial: true
+  lambda_rev: 0.1
+  use_coral: false
+
+data:
+  dataset_path: local/dataset/caueeg-dataset
+  task: dementia
+  file_format: edf
+  window_size: 800
+  window_stride: 200
+  max_windows_train: 128
+  max_windows_eval: 256
+  transition_margin: 600
+  normalize: true
+  norm_mode: dataset              # CeedNet style: dataset-level statistics
+
+training:
+  lr: 0.00007
+  weight_decay: 0.05
+  total_epochs: 100
+  warmup_epochs: 8
+  batch_size: 8
+  early_stopping_patience: 25
+  mixed_precision: true
+
+  # A-RACE loss
+  use_race: true
+  race_epsilon: [0.20, 0.05, 0.20]
+  race_sigma: 0.5
+  use_coral: false
+  focal_gamma: 0.0
+  ordinal_weight: 0.0
+
+  loss_alpha: 0.6
+  loss_beta: 0.4
+  loss_gamma: 0.1
+  label_smoothing: 0.05
+  class_weights: [0.862, 0.949, 1.272]
+
+  # Window auxiliary
+  window_aux_weight: 0.3
+
+  # CeedNet-style minimal augmentation (σ=0.001, not 0.03!)
+  aug_noise_std: 0.001
+  aug_window_drop: 0.0           # CeedNet doesn't drop windows
+  aug_channel_drop: 0.0          # CeedNet doesn't drop channels
+  mixup_alpha: 0.0               # CeedNet doesn't use mixup
+
+  # TTA
+  tta_repeats: 8
+
+  checkpoint_dir: local/edcc_checkpoints_ceednet_style
+  seed: 42

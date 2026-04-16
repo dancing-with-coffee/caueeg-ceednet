@@ -1,0 +1,68 @@
+# EDCC Hybrid Ordinal — CE (sharp boundaries) + Ordinal penalty (rank consistency)
+#
+# Based on Run 5 (best overall: 61.02%) + ordinal distance penalty
+# Strategy:
+#   CE → maintains sharp MCI boundaries (Run 5's strength: MCI sens 53%)
+#   Ordinal penalty → discourages Normal↔Dementia confusion (CORAL's strength: Dem sens 67%)
+#   Window-level aux → 128x effective data (Run 7's contribution)
+
+model:
+  d_model: 384
+  core_dim: 192
+  num_channels: 19
+  num_classes: 3
+  window_size: 800
+  num_event_types: 6
+  mamba_layers: 6
+  mamba_d_state: 16
+  gcn_layers: 2
+  gcn_hidden: 384
+  dropout: 0.15
+  age_adversarial: true
+  lambda_rev: 0.1
+  use_coral: false             # Standard K-class output (NOT CORAL)
+
+data:
+  dataset_path: local/dataset/caueeg-dataset
+  task: dementia
+  file_format: edf
+  window_size: 800
+  window_stride: 200
+  max_windows_train: 128
+  max_windows_eval: 256
+  transition_margin: 600
+  normalize: true
+
+training:
+  lr: 0.00007                  # Best from Run 5
+  weight_decay: 0.05
+  total_epochs: 100
+  warmup_epochs: 8
+  batch_size: 8
+  early_stopping_patience: 25
+  mixed_precision: true
+
+  # CE + Ordinal hybrid
+  use_coral: false
+  focal_gamma: 0.0             # No focal, standard CE
+  ordinal_weight: 0.5          # Ordinal distance penalty weight
+  loss_alpha: 0.6              # Sample CE
+  loss_beta: 0.4               # Subject CE
+  loss_gamma: 0.1              # Age adversarial
+  label_smoothing: 0.05
+  class_weights: [0.862, 0.949, 1.272]
+
+  # Window auxiliary (128x effective data)
+  window_aux_weight: 0.3
+
+  # Augmentation (moderate — Run 5 style)
+  aug_noise_std: 0.03
+  aug_window_drop: 0.05
+  aug_channel_drop: 0.05
+  mixup_alpha: 0.2
+
+  # TTA
+  tta_repeats: 8
+
+  checkpoint_dir: local/edcc_checkpoints_hybrid
+  seed: 42

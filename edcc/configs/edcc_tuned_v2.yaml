@@ -1,0 +1,64 @@
+# EDCC Tuned v2 — balanced approach
+#
+# Learnings from previous runs:
+#   Run 1 (base):  LR=1e-4, no class weights → Val 54.62%, Test 48.31%
+#   Run 2 (base+mixup): LR=1e-4, GatedConvRNN → Val 47.90%, Test 53.39%
+#   Run 3 (tuned): LR=3e-5 → too slow, val plateaus ~47%
+#
+# Strategy:
+#   - LR 5e-5 (middle ground)
+#   - Warmup 8 epochs (moderate)
+#   - Class weights retained
+#   - Sample CE dominant (alpha=0.7), subject CE secondary (beta=0.3)
+#   - More windows (96 train)
+#   - Moderate augmentation
+
+model:
+  d_model: 128
+  core_dim: 64
+  num_channels: 19
+  num_classes: 3
+  window_size: 400
+  num_event_types: 6
+  mamba_layers: 4
+  mamba_d_state: 16
+  gcn_layers: 2
+  gcn_hidden: 128
+  dropout: 0.15
+  age_adversarial: true
+  lambda_rev: 0.1
+
+data:
+  dataset_path: local/dataset/caueeg-dataset
+  task: dementia
+  file_format: edf
+  window_size: 400
+  window_stride: 200
+  max_windows_train: 96
+  max_windows_eval: 192
+  transition_margin: 600
+  normalize: true
+
+training:
+  lr: 0.00005
+  weight_decay: 0.05
+  total_epochs: 100
+  warmup_epochs: 8
+  batch_size: 12
+  early_stopping_patience: 20
+  mixed_precision: true
+
+  loss_alpha: 0.7
+  loss_beta: 0.3
+  loss_gamma: 0.1
+  label_smoothing: 0.05
+  class_weights: [0.862, 0.949, 1.272]
+
+  aug_noise_std: 0.03
+  aug_window_drop: 0.05
+  aug_channel_drop: 0.05
+  mixup_alpha: 0.15
+
+  eval_repeats: 20
+  checkpoint_dir: local/edcc_checkpoints_v2
+  seed: 42

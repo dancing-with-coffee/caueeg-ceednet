@@ -1,0 +1,63 @@
+# EDCC Final — All improvements applied
+#
+# Improvements over edcc_large.yaml:
+#   1. Model scale: d_model 256→640, core_dim 128→320 (~9.1M params)
+#   2. SSD backend: pure-torch Mamba-2 algorithm (no CUDA extension needed)
+#   3. Focal Loss (gamma=2.0): hard example mining for MCI/Dementia
+#   4. Effective TTA: diverse window offsets (stride-fraction shifts)
+#   5. LR 5e-5 with 10-epoch warmup for large model stability
+
+model:
+  d_model: 640
+  core_dim: 320
+  num_channels: 19
+  num_classes: 3
+  window_size: 800           # 4 seconds
+  num_event_types: 6
+  mamba_layers: 6
+  mamba_d_state: 16
+  gcn_layers: 2
+  gcn_hidden: 640
+  dropout: 0.2               # Higher for larger model
+  age_adversarial: true
+  lambda_rev: 0.1
+
+data:
+  dataset_path: local/dataset/caueeg-dataset
+  task: dementia
+  file_format: edf
+  window_size: 800
+  window_stride: 200
+  max_windows_train: 128
+  max_windows_eval: 256
+  transition_margin: 600
+  normalize: true
+
+training:
+  lr: 0.00005
+  weight_decay: 0.05
+  total_epochs: 100
+  warmup_epochs: 10
+  batch_size: 6              # Smaller for 9M model + 800-sample windows
+  early_stopping_patience: 25
+  mixed_precision: true
+
+  # Focal Loss
+  focal_gamma: 2.0
+  loss_alpha: 0.6
+  loss_beta: 0.4
+  loss_gamma: 0.1
+  label_smoothing: 0.05
+  class_weights: [0.862, 0.949, 1.272]
+
+  # Augmentation
+  aug_noise_std: 0.03
+  aug_window_drop: 0.05
+  aug_channel_drop: 0.05
+  mixup_alpha: 0.2
+
+  # TTA
+  tta_repeats: 8
+
+  checkpoint_dir: local/edcc_checkpoints_final
+  seed: 42

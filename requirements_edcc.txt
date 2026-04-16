@@ -1,0 +1,6 @@
+# EDCC model additional dependencies
+mamba-ssm>=1.2.0
+causal-conv1d>=1.1.0
+mne>=1.0
+einops
+scikit-posthocs

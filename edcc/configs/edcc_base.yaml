@@ -1,0 +1,55 @@
+# EDCC Base Configuration
+
+# Model
+model:
+  d_model: 128
+  core_dim: 64
+  num_channels: 19
+  num_classes: 3
+  window_size: 400
+  num_event_types: 6
+  mamba_layers: 4
+  mamba_d_state: 16
+  gcn_layers: 2
+  gcn_hidden: 128
+  dropout: 0.1
+  age_adversarial: true
+  lambda_rev: 0.1
+
+# Data
+data:
+  dataset_path: local/dataset/caueeg-dataset
+  task: dementia
+  file_format: edf
+  window_size: 400           # 2 seconds at 200Hz
+  window_stride: 200         # 1 second
+  max_windows_train: 64      # windows per recording (training)
+  transition_margin: 600     # ±3 seconds at 200Hz
+  normalize: true
+
+# Training
+training:
+  lr: 0.0001
+  weight_decay: 0.05
+  total_epochs: 100
+  warmup_epochs: 5
+  batch_size: 16
+  early_stopping_patience: 15
+  mixed_precision: true
+  loss_alpha: 0.5            # sample-level CE weight
+  loss_beta: 0.5             # subject-level CE weight
+  loss_gamma: 0.1            # age adversarial weight
+  label_smoothing: 0.1
+
+  # Augmentation
+  aug_noise_std: 0.05
+  aug_window_drop: 0.1
+  aug_channel_drop: 0.1
+  mixup_alpha: 0.2
+
+  # Evaluation
+  eval_repeats: 20
+
+  # Checkpointing
+  checkpoint_dir: local/edcc_checkpoints
+  seed: 42

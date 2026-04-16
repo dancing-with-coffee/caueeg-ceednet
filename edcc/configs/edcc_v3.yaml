@@ -1,0 +1,67 @@
+# EDCC v3 — Anti-overfitting + Better data usage
+#
+# Key changes:
+#   1. Right-sized model: d_model=384 (~3.4M params, same as best Run 5)
+#   2. SSD backend with DropPath (stochastic depth 0.15)
+#   3. Window-level auxiliary loss (effective 128x data multiplication)
+#   4. Focal Loss (gamma=1.5, moderate) for class balance
+#   5. LR 7e-5 (proven best from Run 5)
+#   6. Diverse-offset TTA
+
+model:
+  d_model: 384
+  core_dim: 192
+  num_channels: 19
+  num_classes: 3
+  window_size: 800
+  num_event_types: 6
+  mamba_layers: 6
+  mamba_d_state: 16
+  gcn_layers: 2
+  gcn_hidden: 384
+  dropout: 0.2
+  age_adversarial: true
+  lambda_rev: 0.1
+
+data:
+  dataset_path: local/dataset/caueeg-dataset
+  task: dementia
+  file_format: edf
+  window_size: 800
+  window_stride: 200
+  max_windows_train: 128
+  max_windows_eval: 256
+  transition_margin: 600
+  normalize: true
+
+training:
+  lr: 0.00007
+  weight_decay: 0.05
+  total_epochs: 100
+  warmup_epochs: 8
+  batch_size: 8
+  early_stopping_patience: 25
+  mixed_precision: true
+
+  # Focal + class weights
+  focal_gamma: 1.5
+  loss_alpha: 0.6
+  loss_beta: 0.4
+  loss_gamma: 0.1
+  label_smoothing: 0.05
+  class_weights: [0.862, 0.949, 1.272]
+
+  # Window auxiliary loss (key anti-overfitting: 128x more supervision)
+  window_aux_weight: 0.3
+
+  # Augmentation
+  aug_noise_std: 0.03
+  aug_window_drop: 0.05
+  aug_channel_drop: 0.05
+  mixup_alpha: 0.2
+
+  # TTA
+  tta_repeats: 8
+
+  checkpoint_dir: local/edcc_checkpoints_v3
+  seed: 42

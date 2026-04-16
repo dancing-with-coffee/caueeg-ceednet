@@ -156,6 +156,48 @@ To use the pre-trained model, download the checkpoint file from [here](#model-su
 
 ---
 
+## EDCC: Event-Aware Dynamic Centralized Cross-scale Model
+
+EDCC는 CeedNet의 CAUEEG 데이터셋 위에 구축된 새로운 EEG 분류 모델입니다. Eyes-Open ↔ Eyes-Closed 전환 시의 동적 패턴을 명시적으로 활용합니다.
+
+### Architecture
+
+```
+Stage 1: Cross-scale Tokenization (Multi-scale Conv k=15,40,100 + Event Embedding)
+Stage 2: CoTAR + Event-Conditioned SSD (Core Token trajectory modeling)
+Stage 3: Region-Level GCN (5 brain regions, anatomical adjacency)
+Head: Age-conditioned LayerNorm + Age concat + MLP
+```
+
+### EDCC Results on *CAUEEG-Dementia*
+
+| Config | #Params | TTA | Test Acc | Balanced Acc | MCI Sens | Dem Sens |
+|:------:|:-------:|:---:|:--------:|:------------:|:--------:|:--------:|
+| EDCC Large (Run 5) | 3.49M | | **61.02%** | - | **53.66%** | 29.03% |
+| EDCC Best Combined (Run 13) | 3.39M | ✔ | 59.32% | **59.94%** | 31.71% | **74.19%** |
+
+### Novel Contributions
+
+- **A-RACE Loss**: Adaptive Rank-Aware Cross-Entropy — class-dependent ordinal smoothing
+- **Pure-torch SSD**: Mamba-2 SSD algorithm implemented in pure PyTorch
+- **Window-level auxiliary loss**: 128x effective training data multiplication
+
+### How to Run EDCC
+
+```bash
+pip install -r requirements_edcc.txt
+
+# Best accuracy model
+python -m edcc.scripts.run_edcc_train --config edcc/configs/edcc_large.yaml
+
+# Best balanced model
+python -m edcc.scripts.run_edcc_train --config edcc/configs/edcc_best_combined.yaml
+```
+
+See [EXPERIMENT_REPORT.md](EXPERIMENT_REPORT.md) for full experiment details.
+
+---
+
 ## Citation
 
 If you found this repository helpful, please cite the paper below.
